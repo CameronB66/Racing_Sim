@@ -78,15 +78,28 @@ class Race:
 		self.sim = Sim()
 		self.track = track
 		self.laps = laps
-		self.race_tracker = {}
+		self.race_tracker = []
 		self.num_cars = 0
 
-	def add_car(car):
+	def add_car(self, car):
 		self.num_cars += 1
-		self.cars[self.num_cars] = {"car":car, "gap":0.5, "speed_mod":0, "downforce_mod":0}
-		self.cars[1]["gap"] = None
+		self.cars.append({"car":car, "gap_front":0.5, "gap_leader":0.5*(num_cars-1), "speed_mod":0, "downforce_mod":0})
+		self.cars[0]["gap_front"] = None
 
-	
+	def reorder(self):
+		cumulative_gap = 0
+		for place in range(1,self.num_cars):
+			cumulative_gap += self.race_tracker[place]["gap_front"]
+			self.race_tracker[place]["gap_leader"] = cumulative_gap
+		self.race_tracker.sort(key = lambda x: x["gap_leader"])
+
+		prev_gap = 0
+		leader_gap_mod = -self.race_tracker[0]["gap_leader"]
+		self.race_tracker[0]["gap_front"] = None
+		for place in range(1,self.num_cars):
+			self.race_tracker[place]["gap_leader"] += leader_gap_mod
+			self.race_tracker[place]["gap_front"] = self.race_tracker[place]["gap_leader"] - prev_gap
+			prev_gap = self.race_tracker[place]["gap_leader"]
 
 
 #========== Simulation Settings =============#
@@ -104,34 +117,32 @@ class Sim:
 		self.traction_tyre_wear_coefficient = 1 #traction = traction_val * tyre_wear * coefficient
 		self.max_traction_diff = 0.75 #max time that can be lost through lack of traction
 
-	def calculate_modifiers(race_tracker):
+	def calculate_modifiers(self, race_tracker):
 		num_cars = len(race_tracker)
-		for index in range(0,num_cars):
-			place = index+1
+		for place in range(1,num_cars):
 			sp_mod = 0
 			down_mod = 0
-			if race_tracker[place]["gap"] < 0.5:
+			if race_tracker[place]["gap_front"] < 0.5:
 				sp_mod = self.slip_close
 				down_mod = self.dirt_air_close				
 
-			elif race_tracker[place]["gap"] < 1:
+			elif race_tracker[place]["gap_front"] < 1:
 				sp_mod = self.slip_far
 				down_mod = self.dirty_air_far
 
 			race_tracker[place]["speed_mod"] = sp_mod
 			race_tracker[place]["downforce_mod"] = down_mod
 
-	def calc_traction_zone(race_tracker): #passing dicts from race_tracker
+	def calc_traction_zone(self, race_tracker): #passing dicts from race_tracker
 		num_cars = len(race_tracker)
-		for index in range(1,num_cars):
-			place = index+1
-			car_ahead = race_tracker[index]["car"]
+		for place in range(1,num_cars):
+			car_ahead = race_tracker[place-1]["car"]
 			car_behind = race_tracker[place]["car"]
 
-			traction_diff = ( car_behind.traction*car_behind.tyre_wear - car_ahead.traction*car_ahead.tyre_wear)*self.traction_tyre_wear_coefficient
+			traction_diff = (car_ahead.traction*car_ahead.tyre_wear -  car_behind.traction*car_behind.tyre_wear)*self.traction_tyre_wear_coefficient
 			time_diff = traction_diff*self.max_traction_diff
 
-			race_tracker[place]["gap"]+=time_diff
+			race_tracker[place]["gap_front"]+=time_diff
 
 
 
