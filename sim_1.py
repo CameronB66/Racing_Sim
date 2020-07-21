@@ -2,7 +2,7 @@
 
 class Straight:
 	def __init__(self, length):
-		self.length = length #1 2 3 - short medium long
+		self.length = length #0 1 2 - short medium long
 		self.type = "STRAIGHT"
 		self.next = None
 
@@ -14,8 +14,8 @@ class Straight:
 
 class Turn:
 	def __init__(self, sev, length):
-		self.sev = sev #1 2 3 - slow medium fast
-		self.length = length #1 2 3 - short medium long
+		self.sev = sev #0 1 2 - slow medium fast
+		self.length = length #0 1 2 - short medium long
 		self.type = "TURN"
 		self.next = None
 
@@ -63,7 +63,7 @@ class Car:
 		self.damage = 1.0
 
 	def set_tyre(tyre):
-		self.tyre_type = tyre # 1 2 3 - hard medium soft
+		self.tyre_type = tyre # 0 1 2 - hard medium soft
 		self.tyre_wear = 1.0
 
 	def repair():
@@ -101,6 +101,9 @@ class Race:
 			self.race_tracker[place]["gap_front"] = self.race_tracker[place]["gap_leader"] - prev_gap
 			prev_gap = self.race_tracker[place]["gap_leader"]
 
+	def next(self):
+		#add code for progressing through track here
+
 
 #========== Simulation Settings =============#
 
@@ -116,6 +119,12 @@ class Sim:
 		
 		self.traction_tyre_wear_coefficient = 1 #traction = traction_val * tyre_wear * coefficient
 		self.max_traction_diff = 0.75 #max time that can be lost through lack of traction
+
+		self.max_speed_diff = 1 #max time that can be lost on each section of straight
+		self.downforce_penalty = 1 #penalty applied to straight line speed for increased downforce
+		self.turn_severity_coefficient = [0.3, 0.6, 1] #downforce benefit for slow medium high speed corners
+		self.corner_tyre_wear_grip_coefficient = 1 #how much does tyre wear affect cornering
+		self.max_turn_diff = 0.5 #max time lost on each section of a corner
 
 	def calculate_modifiers(self, race_tracker):
 		num_cars = len(race_tracker)
@@ -133,7 +142,7 @@ class Sim:
 			race_tracker[place]["speed_mod"] = sp_mod
 			race_tracker[place]["downforce_mod"] = down_mod
 
-	def calc_traction_zone(self, race_tracker): #passing dicts from race_tracker
+	def calc_traction_zone(self, race_tracker):
 		num_cars = len(race_tracker)
 		for place in range(1,num_cars):
 			car_ahead = race_tracker[place-1]["car"]
@@ -144,13 +153,38 @@ class Sim:
 
 			race_tracker[place]["gap_front"]+=time_diff
 
-
-
-
+	def calc_straight(self, race_tracker):
+		num_cars = len(race_tracker)
+		for place in range(1,num_cars):
+			car_ahead_dict = race_tracker[place-1]
+			car_behind_dict = race_tracker[place]
 			
+			car_ahead_speed = car_ahead_dict["car"].top_speed + car_ahead_dict["speed_mod"]
+			car_ahead_downforce_penalty = car_ahead_dict["car"].downforce + car_ahead_dict["downforce_mod"]*self.downforce_penalty
 
+			car_behind_speed = car_behind_dict["car"].top_speed + car_behind_dict["speed_mod"]
+			car_behind_downforce_penalty = car_behind_dict["car"].downforce + car_behind_dict["downforce_mod"]*self.downforce_penalty
 
+			time_diff = ((car_ahead_speed - car_ahead_downforce_penalty) - (car_behind_speed - car_behind_downforce_penalty))*self.max_speed_diff
 
+			race_tracker[place]["gap_front"]+=time_diff
+
+	def calc_turn(self, race_tracker, sev):
+		for place in range(1,num_cars):
+					car_ahead_dict = race_tracker[place-1]
+					car_behind_dict = race_tracker[place]
+					
+					car_ahead_downforce = car_ahead_dict["car"].downforce + car_ahead_dict["downforce_mod"]
+
+					car_behind_downforce = car_behind_dict["car"].downforce + car_behind_dict["downforce_mod"]
+
+					car_ahead_grip = car_ahead_downforce*self.turn_severity_coefficient[sev]*self.corner_tyre_wear_coefficient*car_ahead_dict["car"].tyre_wear
+
+					car_behind_grip = car_behind_downforce*self.turn_severity_coefficient[sev]*self.corner_tyre_wear_coefficient*car_behind_dict["car"].tyre_wear
+
+					time_diff = (car_ahead_grip - car_behind_grip)*self.max_turn_diff
+
+					race_tracker[place]["gap_front"]+=time_diff
 
 
 
