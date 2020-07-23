@@ -212,48 +212,52 @@ class Sim:
 
 	def calc_traction_zone(self, race_tracker): #add tyre modifier here
 		num_cars = len(race_tracker)
-		for place in range(1, num_cars):
-			car_ahead = race_tracker[place-1]["car"]
-			car_behind = race_tracker[place]["car"]
+		traction_vals = []
+		for place in range(0, num_cars):
+			car = race_tracker[place]["car"]
 
-			traction_diff = (car_ahead.traction*car_ahead.tyre_wear -  car_behind.traction*car_behind.tyre_wear)*self.traction_tyre_wear_coefficient
-			time_diff = traction_diff*self.max_traction_diff
+			traction = car_ahead.traction * car_ahead.tyre_wear * self.traction_tyre_wear_coefficient
+			
+			traction_vals.append(traction)
+
+		for place in range(1, num_cars):
+			car = race_tracker[place]["car"]
+
+			time_diff = (traction_val[place-1] - traction_val[place])*self.max_traction_diff
 
 			race_tracker[place]["gap_front"]+=time_diff
 
 	def calc_straight(self, race_tracker):
 		num_cars = len(race_tracker)
+		speed_vals = []
+
+		for place in range(0, num_cars):
+			car_dict = race_tracker[place]
+			car_speed = car_dict["car"].top_speed + car_dict["speed_mod"]
+			car_downforce_penalty = (car_dict["car"].downforce + car_dict["downforce_mod"])*self.downforce_penalty
+
+			speed_vals.append(car_speed - car_downforce_penalty)
+
 		for place in range(1, num_cars):
-			car_ahead_dict = race_tracker[place-1]
-			car_behind_dict = race_tracker[place]
-			
-			car_ahead_speed = car_ahead_dict["car"].top_speed + car_ahead_dict["speed_mod"]
-			car_ahead_downforce_penalty = car_ahead_dict["car"].downforce + car_ahead_dict["downforce_mod"]*self.downforce_penalty
-
-			car_behind_speed = car_behind_dict["car"].top_speed + car_behind_dict["speed_mod"]
-			car_behind_downforce_penalty = car_behind_dict["car"].downforce + car_behind_dict["downforce_mod"]*self.downforce_penalty
-
-			time_diff = ((car_ahead_speed - car_ahead_downforce_penalty) - (car_behind_speed - car_behind_downforce_penalty))*self.max_speed_diff
+			time_diff = (speed_vals[place-1] - speed_vals[place])*self.max_speed_diff
 
 			race_tracker[place]["gap_front"]+=time_diff
 
 	def calc_turn(self, race_tracker, sev): #add tyre modifier here
 		num_cars = len(race_tracker)
+		turn_vals = []
+		for place in range(0, num_cars):
+			car_dict = race_tracker[place]
+
+			car_downforce = car_dict["car"].downforce + car_dict["downforce_mod"]
+			car_grip = car_downforce*self.turn_severity_coefficient[sev]*self.corner_tyre_wear_grip_coefficient*car_dict["car"].tyre_wear
+			turn_vals.append(car_grip)
+
+
 		for place in range(1,num_cars):
-					car_ahead_dict = race_tracker[place-1]
-					car_behind_dict = race_tracker[place]
-					
-					car_ahead_downforce = car_ahead_dict["car"].downforce + car_ahead_dict["downforce_mod"]
+			time_diff = (turn_vals[place-1] - turn_vals[place])*self.max_turn_diff
 
-					car_behind_downforce = car_behind_dict["car"].downforce + car_behind_dict["downforce_mod"]
-
-					car_ahead_grip = car_ahead_downforce*self.turn_severity_coefficient[sev]*self.corner_tyre_wear_grip_coefficient*car_ahead_dict["car"].tyre_wear
-
-					car_behind_grip = car_behind_downforce*self.turn_severity_coefficient[sev]*self.corner_tyre_wear_grip_coefficient*car_behind_dict["car"].tyre_wear
-
-					time_diff = (car_ahead_grip - car_behind_grip)*self.max_turn_diff
-
-					race_tracker[place]["gap_front"]+=time_diff
+			race_tracker[place]["gap_front"]+=time_diff
 
 
 #======== Display Functions =============#
@@ -346,6 +350,7 @@ def hungaroring():
 	return race
 
 def optimum_downforce(track):
+	pass
 	#add asdasda here
 
 
