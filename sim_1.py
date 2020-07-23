@@ -186,13 +186,13 @@ class Sim:
 		self.dirty_air_far = -0.1 #downforce penalty for far dirty air
 		
 		self.traction_tyre_wear_coefficient = 1 #traction = traction_val * tyre_wear * coefficient
-		self.max_traction_diff = 0.75 #max time that can be lost through lack of traction
+		self.max_traction_diff = 1 #max time that can be lost through lack of traction
 
 		self.max_speed_diff = 1 #max time that can be lost on each section of straight
 		self.downforce_penalty = 0.3 #penalty applied to straight line speed for increased downforce
 		self.turn_severity_coefficient = [0.3, 0.6, 1] #downforce benefit for slow medium high speed corners
 		self.corner_tyre_wear_grip_coefficient = 1 #how much does tyre wear affect cornering
-		self.max_turn_diff = 0.5 #max time lost on each section of a corner
+		self.max_turn_diff = 0.8 #max time lost on each section of a corner
 
 	def calc_modifiers(self, race_tracker):
 		num_cars = len(race_tracker)
@@ -289,20 +289,13 @@ def run_race_graph(race):
 
 #========== Misc Functions ==============#
 
-def random_race():
-	track = Track("Test")
-	track.add_straight(2)
-	track.add_turn(0,1)
-	track.add_turn(1,1)
-	track.add_straight(1)
-	track.add_turn(2,2)
-	track.add_straight(0)
-	track.add_turn(0,0)
-	track.add_straight(1)
-
+def random_race(track):
 	cars = []
 	for i in range(50):
-		cars.append(Car(random.random(),random.random(),random.random(), "Car"+str(i)))
+		x = random.random()
+		y = random.uniform(0,1-x)
+		z = 1 - x - y
+		cars.append(Car(x,y,z, "Car"+str(i)))
 		cars[-1].set_tyre(0)
 
 	race = Race(track, 100)
@@ -312,47 +305,54 @@ def random_race():
 
 	return race
 
-def hungaroring():
-	track = Track("Hungaroring")
-	track.add_straight(1)
-	track.add_turn(0,2)
-	track.add_straight(0)
-	track.add_turn(0,1)
-	track.add_turn(2,0)
-	track.add_straight(1)
-	track.add_turn(1,0)
-	track.add_turn(0,1)
-	track.add_straight(0)
-	track.add_turn(0,0)
-	track.add_straight(0)
-	track.add_turn(1,1)
-	track.add_turn(0,1)
-	track.add_turn(2,0)
-	track.add_turn(1,1)
-	track.add_straight(0)
-	track.add_turn(1,1)
-	track.add_straight(0)
-	track.add_turn(0,2)
-	track.add_straight(0)
-	track.add_turn(1,2)
-	track.add_straight(0)
+def optimum_stats(track):
+	car_control = Car(0,0,0,"Control")
+	car_control.set_tyre(0)
 
-	cars = []
-	for i in range(50):
-		cars.append(Car(random.random(),random.random(),random.random(), "Car"+str(i)))
-		cars[-1].set_tyre(0)
+	max_time = 0
+	max_stats = [0,0,0]
+	for i in range(100):
+		for j in range(100-i):
+			car = Car(0.01*i,0.01*j,1-(i+j)*0.01,"Car")
+			car.set_tyre(0)
+			r = Race(track, 50)
+			r.add_car(car)
+			r.add_car(car_control)
+			while r.next():
+				pass
+			time = r.race_tracker[1]["gap_leader"]
+			if time > max_time:
+				max_stats[0] = car.traction
+				max_stats[1] = car.top_speed
+				max_stats[2] = car.downforce
+				max_time = time
+				
+	print(max_stats)
+	print(max_time)
 
-	race = Race(track, 100)
+#==================== Tracks =========================#
 
-	for car in cars:
-		race.add_car(car)
-
-	return race
-
-def optimum_downforce(track):
-	pass
-	#add asdasda here
-
-
-
+Hungaroring = Track("Hungaroring")
+Hungaroring.add_straight(1)
+Hungaroring.add_turn(0,2)
+Hungaroring.add_straight(0)
+Hungaroring.add_turn(0,1)
+Hungaroring.add_turn(2,0)
+Hungaroring.add_straight(1)
+Hungaroring.add_turn(1,0)
+Hungaroring.add_turn(0,1)
+Hungaroring.add_straight(0)
+Hungaroring.add_turn(0,0)
+Hungaroring.add_straight(0)
+Hungaroring.add_turn(1,1)
+Hungaroring.add_turn(0,1)
+Hungaroring.add_turn(2,0)
+Hungaroring.add_turn(1,1)
+Hungaroring.add_straight(0)
+Hungaroring.add_turn(1,1)
+Hungaroring.add_straight(0)
+Hungaroring.add_turn(0,2)
+Hungaroring.add_straight(0)
+Hungaroring.add_turn(1,2)
+Hungaroring.add_straight(0)
 
