@@ -216,14 +216,14 @@ class Sim:
 		for place in range(0, num_cars):
 			car = race_tracker[place]["car"]
 
-			traction = car_ahead.traction * car_ahead.tyre_wear * self.traction_tyre_wear_coefficient
+			traction = car.traction * car.tyre_wear * self.traction_tyre_wear_coefficient
 			
 			traction_vals.append(traction)
 
 		for place in range(1, num_cars):
 			car = race_tracker[place]["car"]
 
-			time_diff = (traction_val[place-1] - traction_val[place])*self.max_traction_diff
+			time_diff = (traction_vals[place-1] - traction_vals[place])*self.max_traction_diff
 
 			race_tracker[place]["gap_front"]+=time_diff
 
